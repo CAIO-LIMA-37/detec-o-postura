@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pt-BR" xml:lang="pt-BR"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.40">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Pedro Caio">
+
+<title>Mini Livro: Detecção de Posturas com YOLO</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Visao_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Visao_files/libs/quarto-html/quarto.js"></script>
+<script src="Visao_files/libs/quarto-html/popper.min.js"></script>
+<script src="Visao_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Visao_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Visao_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Visao_files/libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="Visao_files/libs/quarto-html/quarto-syntax-highlighting-dark-8ea72dc5fed832574809a9c94082fbbb.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="Visao_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Visao_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Visao_files/libs/bootstrap/bootstrap-79912ce8028e1efe7c0b985ea614e92f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="Visao_files/libs/bootstrap/bootstrap-dark-d7a88a546168d8387e6a3516c26f5597.min.css" rel="prefetch" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script src="Visao_files/libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="Visao_files/libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="Visao_files/libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="1">
+    <h2 id="toc-title">Sumário</h2>
+   
+  <ul>
+  <li><a href="#introdução" id="toc-introdução" class="nav-link active" data-scroll-target="#introdução"><span class="header-section-number">1</span> Introdução</a></li>
+  <li><a href="#importação-de-bibliotecas-e-ambiente" id="toc-importação-de-bibliotecas-e-ambiente" class="nav-link" data-scroll-target="#importação-de-bibliotecas-e-ambiente"><span class="header-section-number">2</span> Importação de Bibliotecas e Ambiente</a>
+  <ul class="collapse">
+  <li><a href="#configuração-inicial-no-google-colab" id="toc-configuração-inicial-no-google-colab" class="nav-link" data-scroll-target="#configuração-inicial-no-google-colab"><span class="header-section-number">2.1</span> Configuração Inicial no Google Colab</a></li>
+  <li><a href="#importação-das-bibliotecas" id="toc-importação-das-bibliotecas" class="nav-link" data-scroll-target="#importação-das-bibliotecas"><span class="header-section-number">2.2</span> Importação das Bibliotecas</a>
+  <ul class="collapse">
+  <li><a href="#explicação" id="toc-explicação" class="nav-link" data-scroll-target="#explicação"><span class="header-section-number">2.2.1</span> Explicação</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#função-principal-processar_midia" id="toc-função-principal-processar_midia" class="nav-link" data-scroll-target="#função-principal-processar_midia"><span class="header-section-number">3</span> Função principal: <code>processar_midia</code></a>
+  <ul class="collapse">
+  <li><a href="#estrutura-e-lógica-geral" id="toc-estrutura-e-lógica-geral" class="nav-link" data-scroll-target="#estrutura-e-lógica-geral"><span class="header-section-number">3.1</span> Estrutura e Lógica Geral</a>
+  <ul class="collapse">
+  <li><a href="#explicação-1" id="toc-explicação-1" class="nav-link" data-scroll-target="#explicação-1"><span class="header-section-number">3.1.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#inicializando-contadores" id="toc-inicializando-contadores" class="nav-link" data-scroll-target="#inicializando-contadores"><span class="header-section-number">3.2</span> Inicializando Contadores</a>
+  <ul class="collapse">
+  <li><a href="#explicação-2" id="toc-explicação-2" class="nav-link" data-scroll-target="#explicação-2"><span class="header-section-number">3.2.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#processamento-de-imagem" id="toc-processamento-de-imagem" class="nav-link" data-scroll-target="#processamento-de-imagem"><span class="header-section-number">3.3</span> Processamento de Imagem</a>
+  <ul class="collapse">
+  <li><a href="#explicação-3" id="toc-explicação-3" class="nav-link" data-scroll-target="#explicação-3"><span class="header-section-number">3.3.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#processamento-de-vídeo" id="toc-processamento-de-vídeo" class="nav-link" data-scroll-target="#processamento-de-vídeo"><span class="header-section-number">3.4</span> Processamento de Vídeo</a>
+  <ul class="collapse">
+  <li><a href="#explicação-4" id="toc-explicação-4" class="nav-link" data-scroll-target="#explicação-4"><span class="header-section-number">3.4.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#definição-do-codec-e-criação-do-objeto-de-escrita-de-vídeo" id="toc-definição-do-codec-e-criação-do-objeto-de-escrita-de-vídeo" class="nav-link" data-scroll-target="#definição-do-codec-e-criação-do-objeto-de-escrita-de-vídeo"><span class="header-section-number">3.5</span> Definição do Codec e Criação do Objeto de Escrita de Vídeo</a>
+  <ul class="collapse">
+  <li><a href="#explicação-5" id="toc-explicação-5" class="nav-link" data-scroll-target="#explicação-5"><span class="header-section-number">3.5.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#controle-de-transições" id="toc-controle-de-transições" class="nav-link" data-scroll-target="#controle-de-transições"><span class="header-section-number">3.6</span> Controle de Transições</a>
+  <ul class="collapse">
+  <li><a href="#explicação-6" id="toc-explicação-6" class="nav-link" data-scroll-target="#explicação-6"><span class="header-section-number">3.6.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#loop-de-processamento-de-frames" id="toc-loop-de-processamento-de-frames" class="nav-link" data-scroll-target="#loop-de-processamento-de-frames"><span class="header-section-number">3.7</span> Loop de Processamento de Frames</a>
+  <ul class="collapse">
+  <li><a href="#explicação-7" id="toc-explicação-7" class="nav-link" data-scroll-target="#explicação-7"><span class="header-section-number">3.7.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#aplicação-do-modelo-yolo" id="toc-aplicação-do-modelo-yolo" class="nav-link" data-scroll-target="#aplicação-do-modelo-yolo"><span class="header-section-number">3.8</span> Aplicação do Modelo YOLO</a>
+  <ul class="collapse">
+  <li><a href="#explicação-8" id="toc-explicação-8" class="nav-link" data-scroll-target="#explicação-8"><span class="header-section-number">3.8.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#classificação-das-posturas" id="toc-classificação-das-posturas" class="nav-link" data-scroll-target="#classificação-das-posturas"><span class="header-section-number">3.9</span> Classificação das Posturas</a>
+  <ul class="collapse">
+  <li><a href="#explicação-9" id="toc-explicação-9" class="nav-link" data-scroll-target="#explicação-9"><span class="header-section-number">3.9.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#contagem-de-posturas" id="toc-contagem-de-posturas" class="nav-link" data-scroll-target="#contagem-de-posturas"><span class="header-section-number">3.10</span> Contagem de Posturas</a>
+  <ul class="collapse">
+  <li><a href="#explicação-10" id="toc-explicação-10" class="nav-link" data-scroll-target="#explicação-10"><span class="header-section-number">3.10.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#controle-de-transições-1" id="toc-controle-de-transições-1" class="nav-link" data-scroll-target="#controle-de-transições-1"><span class="header-section-number">3.11</span> Controle de Transições</a>
+  <ul class="collapse">
+  <li><a href="#explicação-11" id="toc-explicação-11" class="nav-link" data-scroll-target="#explicação-11"><span class="header-section-number">3.11.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#finalizando-o-processo" id="toc-finalizando-o-processo" class="nav-link" data-scroll-target="#finalizando-o-processo"><span class="header-section-number">3.12</span> Finalizando o Processo</a>
+  <ul class="collapse">
+  <li><a href="#explicação-12" id="toc-explicação-12" class="nav-link" data-scroll-target="#explicação-12"><span class="header-section-number">3.12.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#registro-do-tempo-de-execução" id="toc-registro-do-tempo-de-execução" class="nav-link" data-scroll-target="#registro-do-tempo-de-execução"><span class="header-section-number">3.13</span> Registro do Tempo de Execução</a>
+  <ul class="collapse">
+  <li><a href="#explicação-13" id="toc-explicação-13" class="nav-link" data-scroll-target="#explicação-13"><span class="header-section-number">3.13.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#geração-do-relatório-de-posturas" id="toc-geração-do-relatório-de-posturas" class="nav-link" data-scroll-target="#geração-do-relatório-de-posturas"><span class="header-section-number">3.14</span> Geração do Relatório de Posturas</a>
+  <ul class="collapse">
+  <li><a href="#explicação-14" id="toc-explicação-14" class="nav-link" data-scroll-target="#explicação-14"><span class="header-section-number">3.14.1</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#visualizações-gráficas" id="toc-visualizações-gráficas" class="nav-link" data-scroll-target="#visualizações-gráficas"><span class="header-section-number">3.15</span> Visualizações Gráficas</a>
+  <ul class="collapse">
+  <li><a href="#gráfico-de-pizza-distribuição-de-posturas" id="toc-gráfico-de-pizza-distribuição-de-posturas" class="nav-link" data-scroll-target="#gráfico-de-pizza-distribuição-de-posturas"><span class="header-section-number">3.15.1</span> Gráfico de Pizza: Distribuição de Posturas</a></li>
+  <li><a href="#explicação-15" id="toc-explicação-15" class="nav-link" data-scroll-target="#explicação-15"><span class="header-section-number">3.15.2</span> Explicação</a></li>
+  <li><a href="#gráfico-kde-duração-das-posturas" id="toc-gráfico-kde-duração-das-posturas" class="nav-link" data-scroll-target="#gráfico-kde-duração-das-posturas"><span class="header-section-number">3.15.3</span> Gráfico KDE: Duração das Posturas</a></li>
+  <li><a href="#explicação-16" id="toc-explicação-16" class="nav-link" data-scroll-target="#explicação-16"><span class="header-section-number">3.15.4</span> Explicação</a></li>
+  <li><a href="#histograma-transições-entre-posturas" id="toc-histograma-transições-entre-posturas" class="nav-link" data-scroll-target="#histograma-transições-entre-posturas"><span class="header-section-number">3.15.5</span> Histograma: Transições entre Posturas</a></li>
+  <li><a href="#explicação-17" id="toc-explicação-17" class="nav-link" data-scroll-target="#explicação-17"><span class="header-section-number">3.15.6</span> Explicação</a></li>
+  </ul></li>
+  <li><a href="#exibição-final-dos-gráficos" id="toc-exibição-final-dos-gráficos" class="nav-link" data-scroll-target="#exibição-final-dos-gráficos"><span class="header-section-number">3.16</span> Exibição Final dos Gráficos</a>
+  <ul class="collapse">
+  <li><a href="#explicação-18" id="toc-explicação-18" class="nav-link" data-scroll-target="#explicação-18"><span class="header-section-number">3.16.1</span> Explicação</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#exemplo-de-aplicação-do-modelo" id="toc-exemplo-de-aplicação-do-modelo" class="nav-link" data-scroll-target="#exemplo-de-aplicação-do-modelo"><span class="header-section-number">4</span> Exemplo de Aplicação do Modelo</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Mini Livro: Detecção de Posturas com YOLO</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Código</button></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Autor</div>
+    <div class="quarto-title-meta-contents">
+             <p>Pedro Caio </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Data de Publicação</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">25 de fevereiro de 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introdução" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introdução</h1>
+<p>Este mini livro descreve em detalhes a lógica e a implementação de um algoritmo para detecção de posturas (deitado, sentado, em pé, background) utilizando o modelo YOLO (You Only Look Once). Vamos explorar cada linha de código, explicando sua função e a lógica por trás dela.</p>
+<hr>
+</section>
+<section id="importação-de-bibliotecas-e-ambiente" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Importação de Bibliotecas e Ambiente</h1>
+<section id="configuração-inicial-no-google-colab" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="configuração-inicial-no-google-colab"><span class="header-section-number">2.1</span> Configuração Inicial no Google Colab</h2>
+<p>Este projeto foi desenvolvido para ser executado no <strong>Google Colab</strong>. Para garantir que tudo funcione corretamente, siga os passos abaixo:</p>
+<ol type="1">
+<li><strong>Instalar a biblioteca YOLO</strong></li>
+</ol>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Instala a biblioteca ultralytics para uso do modelo YOLO</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install ultralytics</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ol start="2" type="1">
+<li><strong>Importar o arquivo de pesos</strong></li>
+</ol>
+<p>Certifique-se de que o arquivo de pesos <code>best.pt</code> (modelo previamente treinado) esteja carregado no Colab.</p>
+</section>
+<section id="importação-das-bibliotecas" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="importação-das-bibliotecas"><span class="header-section-number">2.2</span> Importação das Bibliotecas</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cv2  <span class="co"># OpenCV para manipulação de imagens e vídeos</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time  <span class="co"># Medição de tempo e pausas na execução do código</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os  <span class="co"># Manipulação de arquivos e diretórios</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> warnings  <span class="co"># Ignora avisos desnecessários</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt  <span class="co"># Geração de gráficos</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns  <span class="co"># Visualizações estatísticas avançadas</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> display, Markdown  <span class="co"># Exibição de Markdown em notebooks</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> google.colab <span class="im">import</span> files  <span class="co"># Upload e download de arquivos no Google Colab</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>warnings.filterwarnings(<span class="st">"ignore"</span>, category<span class="op">=</span><span class="pp">UserWarning</span>, module<span class="op">=</span><span class="st">"moviepy"</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação" class="level3" data-number="2.2.1">
+<h3 data-number="2.2.1" class="anchored" data-anchor-id="explicação"><span class="header-section-number">2.2.1</span> Explicação</h3>
+<ul>
+<li><strong>cv2</strong>: manipula vídeos e imagens, permitindo leitura, escrita, e anotações visuais.</li>
+<li><strong>time</strong>: mede durações, essencial para capturar tempos das posturas.</li>
+<li><strong>os</strong>: gerencia arquivos e diretórios.</li>
+<li><strong>warnings</strong>: suprime mensagens desnecessárias para manter o console limpo.</li>
+<li><strong>matplotlib</strong>: cria gráficos, como os gráficos de pizza.</li>
+<li><strong>seaborn</strong>: facilita gráficos estatísticos.</li>
+<li><strong>IPython.display</strong>: exibe textos formatados em Markdown.</li>
+<li><strong>google.colab</strong>: manipula arquivos diretamente no Google Colab.</li>
+</ul>
+<hr>
+</section>
+</section>
+</section>
+<section id="função-principal-processar_midia" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Função principal: <code>processar_midia</code></h1>
+<section id="estrutura-e-lógica-geral" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="estrutura-e-lógica-geral"><span class="header-section-number">3.1</span> Estrutura e Lógica Geral</h2>
+<p>A função <code>processar_midia</code> é responsável por processar imagens ou vídeos, aplicar o modelo YOLO para detecção de posturas e gerar relatórios sobre o tempo gasto em cada postura. Vamos destrinchar cada parte dela.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> processar_midia(caminho_entrada, modelo, tipo<span class="op">=</span><span class="st">'video'</span>, caminho_saida<span class="op">=</span><span class="st">'/content/saida.mp4'</span>):</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> tipo <span class="kw">not</span> <span class="kw">in</span> [<span class="st">'imagem'</span>, <span class="st">'video'</span>]:</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"Tipo deve ser 'imagem' ou 'video'."</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-1" class="level3" data-number="3.1.1">
+<h3 data-number="3.1.1" class="anchored" data-anchor-id="explicação-1"><span class="header-section-number">3.1.1</span> Explicação</h3>
+<ul>
+<li><strong>caminho_entrada</strong>: Caminho para o arquivo de entrada (imagem ou vídeo).</li>
+<li><strong>modelo</strong>: O modelo YOLO previamente treinado que será usado para detectar posturas.</li>
+<li><strong>tipo</strong>: Define se o arquivo de entrada é uma imagem ou um vídeo. Caso não seja nem ‘imagem’ nem ‘video’, a função lança um erro com o <code>raise ValueError()</code>.</li>
+<li><strong>caminho_saida</strong>: Caminho para onde o arquivo processado (com as anotações visuais) será salvo.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="inicializando-contadores" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="inicializando-contadores"><span class="header-section-number">3.2</span> Inicializando Contadores</h2>
+<p>Os contadores serão usados para medir o tempo que a pessoa passa em cada postura ao longo do vídeo.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>    tempo_deitado <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    tempo_sentado <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    tempo_em_pe <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    tempo_background <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    tempo_total <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    posturas_tempo <span class="op">=</span> []</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    transicoes <span class="op">=</span> []</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    duracoes_posturas <span class="op">=</span> {<span class="dv">0</span>: [], <span class="dv">1</span>: [], <span class="dv">2</span>: [], <span class="dv">3</span>: []}  <span class="co"># 0: Deitado, 1: Sentado, 2: Em Pé, 3: Background</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    inicio_execucao <span class="op">=</span> time.time()</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-2" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="explicação-2"><span class="header-section-number">3.2.1</span> Explicação</h3>
+<ul>
+<li><strong>tempo_deitado</strong>: Conta quantos frames mostram a pessoa deitada.</li>
+<li><strong>tempo_sentado</strong>: Conta quantos frames mostram a pessoa sentada.</li>
+<li><strong>tempo_em_pe</strong>: Conta quantos frames mostram a pessoa em pé.</li>
+<li><strong>tempo_background</strong>: Conta quantos frames sem nenhuma detecção relevante (background).</li>
+<li><strong>tempo_total</strong>: Número total de frames processados.</li>
+<li><strong>posturas_tempo</strong>: Lista que registra a postura detectada em cada frame, útil para análises posteriores.</li>
+<li><strong>transicoes</strong>: Lista de transições entre posturas, usada para entender mudanças ao longo do vídeo.</li>
+<li><strong>duracoes_posturas</strong>: Um dicionário que armazena a duração de cada postura em segundos.</li>
+<li><strong>inicio_execucao</strong>: Marca o tempo de início da execução, para depois calcular o tempo total gasto no processamento.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="processamento-de-imagem" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="processamento-de-imagem"><span class="header-section-number">3.3</span> Processamento de Imagem</h2>
+<p>Caso o tipo de mídia seja ‘imagem’, o código processa a imagem individualmente.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> tipo <span class="op">==</span> <span class="st">'imagem'</span>:</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>        img <span class="op">=</span> cv2.imread(caminho_entrada)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        results <span class="op">=</span> modelo.predict(img, conf<span class="op">=</span><span class="fl">0.1</span>, verbose<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        annotated_img <span class="op">=</span> results[<span class="dv">0</span>].plot()</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        cv2.imwrite(caminho_saida, annotated_img)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> caminho_saida</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-3" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="explicação-3"><span class="header-section-number">3.3.1</span> Explicação</h3>
+<ul>
+<li><strong>cv2.imread(caminho_entrada)</strong>: Lê a imagem localizada no caminho especificado.</li>
+<li><strong>modelo.predict(img, conf=0.1, verbose=False)</strong>: Aplica o modelo YOLO para detectar posturas na imagem.
+<ul>
+<li><code>conf=0.1</code>: Define a confiança mínima (10%) para considerar uma detecção válida.</li>
+<li><code>verbose=False</code>: Desativa saídas excessivas no console.</li>
+</ul></li>
+<li><strong>results[0].plot()</strong>: Desenha as caixas delimitadoras (bounding boxes) ao redor das posturas detectadas.</li>
+<li><strong>cv2.imwrite(caminho_saida, annotated_img)</strong>: Salva a imagem anotada no caminho especificado.</li>
+<li><strong>return caminho_saida</strong>: Retorna o caminho do arquivo gerado.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="processamento-de-vídeo" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="processamento-de-vídeo"><span class="header-section-number">3.4</span> Processamento de Vídeo</h2>
+<p>Agora, vamos ver como o código processa vídeos frame a frame.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>        cap <span class="op">=</span> cv2.VideoCapture(caminho_entrada)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        width <span class="op">=</span> <span class="bu">int</span>(cap.get(cv2.CAP_PROP_FRAME_WIDTH))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        height <span class="op">=</span> <span class="bu">int</span>(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        fps <span class="op">=</span> <span class="bu">int</span>(cap.get(cv2.CAP_PROP_FPS))</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        total_frames <span class="op">=</span> <span class="bu">int</span>(cap.get(cv2.CAP_PROP_FRAME_COUNT))</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-4" class="level3" data-number="3.4.1">
+<h3 data-number="3.4.1" class="anchored" data-anchor-id="explicação-4"><span class="header-section-number">3.4.1</span> Explicação</h3>
+<ul>
+<li><strong>cv2.VideoCapture(caminho_entrada)</strong>: Carrega o vídeo no caminho especificado.</li>
+<li><strong>cap.get(cv2.CAP_PROP_FRAME_WIDTH)</strong>: Obtém a largura dos frames do vídeo.</li>
+<li><strong>cap.get(cv2.CAP_PROP_FRAME_HEIGHT)</strong>: Obtém a altura dos frames.</li>
+<li><strong>cap.get(cv2.CAP_PROP_FPS)</strong>: Recupera o número de quadros por segundo (FPS), essencial para converter frames em segundos.</li>
+<li><strong>cap.get(cv2.CAP_PROP_FRAME_COUNT)</strong>: Conta o número total de frames no vídeo.</li>
+</ul>
+</section>
+</section>
+<section id="definição-do-codec-e-criação-do-objeto-de-escrita-de-vídeo" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="definição-do-codec-e-criação-do-objeto-de-escrita-de-vídeo"><span class="header-section-number">3.5</span> Definição do Codec e Criação do Objeto de Escrita de Vídeo</h2>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define o codec de vídeo e cria um objeto para salvar o vídeo processado </span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>fourcc <span class="op">=</span> cv2.VideoWriter_fourcc(<span class="op">*</span><span class="st">'XVID'</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> cv2.VideoWriter(caminho_saida, fourcc, fps, (width, height))</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-5" class="level3" data-number="3.5.1">
+<h3 data-number="3.5.1" class="anchored" data-anchor-id="explicação-5"><span class="header-section-number">3.5.1</span> Explicação</h3>
+<ul>
+<li><strong>fourcc</strong>: Define o codec usado para compressão do vídeo.
+<ul>
+<li><code>*'XVID'</code>: Codec Xvid, amplamente suportado e eficiente.</li>
+</ul></li>
+<li><strong>cv2.VideoWriter</strong>: Cria um objeto para salvar o vídeo processado.
+<ul>
+<li><strong>caminho_saida</strong>: Caminho do arquivo de saída.</li>
+<li><strong>fourcc</strong>: Codec para compressão.</li>
+<li><strong>fps</strong>: Frames por segundo.</li>
+<li><strong>(width, height)</strong>: Dimensões do vídeo.</li>
+</ul></li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="controle-de-transições" class="level2" data-number="3.6">
+<h2 data-number="3.6" class="anchored" data-anchor-id="controle-de-transições"><span class="header-section-number">3.6</span> Controle de Transições</h2>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inicializa variáveis para rastrear transições entre posturas</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>postura_anterior <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>duracao_atual <span class="op">=</span> <span class="dv">0</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-6" class="level3" data-number="3.6.1">
+<h3 data-number="3.6.1" class="anchored" data-anchor-id="explicação-6"><span class="header-section-number">3.6.1</span> Explicação</h3>
+<ul>
+<li><strong>postura_anterior</strong>: Armazena a postura do frame anterior para comparação.</li>
+<li><strong>duracao_atual</strong>: Conta quantos frames a postura atual perdura.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="loop-de-processamento-de-frames" class="level2" data-number="3.7">
+<h2 data-number="3.7" class="anchored" data-anchor-id="loop-de-processamento-de-frames"><span class="header-section-number">3.7</span> Loop de Processamento de Frames</h2>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Loop para processar cada quadro do vídeo</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> cap.isOpened():</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    ret, frame <span class="op">=</span> cap.read()  <span class="co"># Lê um quadro do vídeo</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> ret:</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span>  <span class="co"># Encerra o loop quando não há mais quadros</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-7" class="level3" data-number="3.7.1">
+<h3 data-number="3.7.1" class="anchored" data-anchor-id="explicação-7"><span class="header-section-number">3.7.1</span> Explicação</h3>
+<ul>
+<li><strong>cap.isOpened()</strong>: Verifica se o vídeo foi aberto corretamente.</li>
+<li><strong>cap.read()</strong>: Lê o próximo frame.</li>
+<li><strong>ret</strong>: Retorna <code>False</code> quando os quadros terminam.</li>
+<li><strong>break</strong>: Encerra o loop ao final do vídeo.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="aplicação-do-modelo-yolo" class="level2" data-number="3.8">
+<h2 data-number="3.8" class="anchored" data-anchor-id="aplicação-do-modelo-yolo"><span class="header-section-number">3.8</span> Aplicação do Modelo YOLO</h2>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Aplica o modelo ao quadro e obtém os resultados</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    results <span class="op">=</span> modelo.predict(frame, conf<span class="op">=</span><span class="fl">0.1</span>, verbose<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    annotated_frame <span class="op">=</span> results[<span class="dv">0</span>].plot()  <span class="co"># Adiciona anotações ao quadro</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    out.write(annotated_frame)  <span class="co"># Salva o quadro anotado</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-8" class="level3" data-number="3.8.1">
+<h3 data-number="3.8.1" class="anchored" data-anchor-id="explicação-8"><span class="header-section-number">3.8.1</span> Explicação</h3>
+<ul>
+<li><strong>modelo.predict()</strong>: Aplica YOLO ao frame.
+<ul>
+<li><strong>frame</strong>: Quadro atual.</li>
+<li><strong>conf=0.1</strong>: Confiança mínima de 10% para detectar posturas.</li>
+<li><strong>verbose=False</strong>: Desativa saídas no console.</li>
+</ul></li>
+<li><strong>results[0].plot()</strong>: Desenha as caixas delimitadoras (bounding boxes).</li>
+<li><strong>out.write()</strong>: Grava o quadro anotado no vídeo de saída.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="classificação-das-posturas" class="level2" data-number="3.9">
+<h2 data-number="3.9" class="anchored" data-anchor-id="classificação-das-posturas"><span class="header-section-number">3.9</span> Classificação das Posturas</h2>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>    frame_classificado <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    class_id <span class="op">=</span> <span class="dv">3</span>  <span class="co"># Background padrão</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> result <span class="kw">in</span> results:</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> box <span class="kw">in</span> result.boxes:</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>            class_id <span class="op">=</span> <span class="bu">int</span>(box.cls)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>            frame_classificado <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-9" class="level3" data-number="3.9.1">
+<h3 data-number="3.9.1" class="anchored" data-anchor-id="explicação-9"><span class="header-section-number">3.9.1</span> Explicação</h3>
+<ul>
+<li><strong>frame_classificado</strong>: Marca se houve alguma detecção.</li>
+<li><strong>class_id = 3</strong>: Assume que o frame é background por padrão.</li>
+<li><strong>for result in results</strong>: Itera sobre os resultados.</li>
+<li><strong>int(box.cls)</strong>: Obtém a classe detectada.</li>
+<li><strong>break</strong>: Para após a primeira detecção válida.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="contagem-de-posturas" class="level2" data-number="3.10">
+<h2 data-number="3.10" class="anchored" data-anchor-id="contagem-de-posturas"><span class="header-section-number">3.10</span> Contagem de Posturas</h2>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> frame_classificado:</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>        tempo_background <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> class_id <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>            tempo_deitado <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> class_id <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>            tempo_sentado <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> class_id <span class="op">==</span> <span class="dv">2</span>:</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>            tempo_em_pe <span class="op">+=</span> <span class="dv">1</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-10" class="level3" data-number="3.10.1">
+<h3 data-number="3.10.1" class="anchored" data-anchor-id="explicação-10"><span class="header-section-number">3.10.1</span> Explicação</h3>
+<ul>
+<li>Atualiza os contadores de tempo para cada postura.</li>
+<li><strong>tempo_background</strong>: Incrementado caso nenhuma postura seja detectada.</li>
+<li><strong>class_id == 0</strong>: Postura deitado.</li>
+<li><strong>class_id == 1</strong>: Postura sentado.</li>
+<li><strong>class_id == 2</strong>: Postura em pé.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="controle-de-transições-1" class="level2" data-number="3.11">
+<h2 data-number="3.11" class="anchored" data-anchor-id="controle-de-transições-1"><span class="header-section-number">3.11</span> Controle de Transições</h2>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> postura_anterior <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>        postura_anterior <span class="op">=</span> class_id</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        duracao_atual <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> postura_anterior <span class="op">==</span> class_id:</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        duracao_atual <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        duracoes_posturas[postura_anterior].append(duracao_atual <span class="op">/</span> fps)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        transicoes.append((postura_anterior, class_id))</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        postura_anterior <span class="op">=</span> class_id</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        duracao_atual <span class="op">=</span> <span class="dv">1</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-11" class="level3" data-number="3.11.1">
+<h3 data-number="3.11.1" class="anchored" data-anchor-id="explicação-11"><span class="header-section-number">3.11.1</span> Explicação</h3>
+<ul>
+<li><strong>postura_anterior</strong>: Guarda a última postura detectada.</li>
+<li><strong>duracao_atual</strong>: Incrementa enquanto a postura não muda.</li>
+<li><strong>duracoes_posturas</strong>: Armazena a duração de cada postura em segundos.</li>
+<li><strong>transicoes</strong>: Registra mudanças de postura.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="finalizando-o-processo" class="level2" data-number="3.12">
+<h2 data-number="3.12" class="anchored" data-anchor-id="finalizando-o-processo"><span class="header-section-number">3.12</span> Finalizando o Processo</h2>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>    tempo_total <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    posturas_tempo.append(class_id)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>cap.release()</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>out.release()</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-12" class="level3" data-number="3.12.1">
+<h3 data-number="3.12.1" class="anchored" data-anchor-id="explicação-12"><span class="header-section-number">3.12.1</span> Explicação</h3>
+<ul>
+<li><strong>tempo_total</strong>: Contagem total de frames.</li>
+<li><strong>posturas_tempo</strong>: Lista com a sequência de posturas.</li>
+<li><strong>cap.release()</strong>: Fecha o vídeo de entrada.</li>
+<li><strong>out.release()</strong>: Finaliza e salva o vídeo anotado.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="registro-do-tempo-de-execução" class="level2" data-number="3.13">
+<h2 data-number="3.13" class="anchored" data-anchor-id="registro-do-tempo-de-execução"><span class="header-section-number">3.13</span> Registro do Tempo de Execução</h2>
+<div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Registra o tempo de execução</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>tempo_execucao <span class="op">=</span> fim_execucao <span class="op">-</span> inicio_execucao</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-13" class="level3" data-number="3.13.1">
+<h3 data-number="3.13.1" class="anchored" data-anchor-id="explicação-13"><span class="header-section-number">3.13.1</span> Explicação</h3>
+<ul>
+<li><strong>fim_execucao</strong>: Marca o momento em que o processamento do vídeo é concluído.</li>
+<li><strong>inicio_execucao</strong>: Foi definido antes do loop de processamento.</li>
+<li><strong>tempo_execucao</strong>: Subtraindo um pelo outro, obtemos o tempo total gasto para processar o vídeo.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="geração-do-relatório-de-posturas" class="level2" data-number="3.14">
+<h2 data-number="3.14" class="anchored" data-anchor-id="geração-do-relatório-de-posturas"><span class="header-section-number">3.14</span> Geração do Relatório de Posturas</h2>
+<div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Exibir relatório de tempo em formato Markdown</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>relatorio_tabela <span class="op">=</span> <span class="ss">f"""</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="ss"># 📊 Relatório de Tempo (em Segundos)</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="ss">| Categoria      | Tempo (s) | Porcentagem |</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="ss">|---------------|----------|------------|</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Deitado**   | </span><span class="sc">{</span>tempo_deitado <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">  | </span><span class="sc">{</span>(tempo_deitado <span class="op">/</span> tempo_total) <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss">% |</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Sentado**   | </span><span class="sc">{</span>tempo_sentado <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">  | </span><span class="sc">{</span>(tempo_sentado <span class="op">/</span> tempo_total) <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss">% |</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Em Pé**     | </span><span class="sc">{</span>tempo_em_pe <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">    | </span><span class="sc">{</span>(tempo_em_pe <span class="op">/</span> tempo_total) <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss">% |</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Background** | </span><span class="sc">{</span>tempo_background <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">  | </span><span class="sc">{</span>(tempo_background <span class="op">/</span> tempo_total) <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss">% |</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Duração do Vídeo**  | </span><span class="sc">{</span>total_frames <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">  | 100% |</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Tempo de Processamento** | </span><span class="sc">{</span>tempo_execucao<span class="sc">:.2f}</span><span class="ss"> | - |</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="ss">"""</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>display(Markdown(relatorio_tabela))</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-14" class="level3" data-number="3.14.1">
+<h3 data-number="3.14.1" class="anchored" data-anchor-id="explicação-14"><span class="header-section-number">3.14.1</span> Explicação</h3>
+<ul>
+<li><strong>relatorio_tabela</strong>: Usa uma string formatada para criar um relatório em Markdown.</li>
+<li><strong>tempo_deitado / fps</strong>: Converte frames em segundos.</li>
+<li><strong>(tempo_deitado / tempo_total) * 100</strong>: Calcula a porcentagem de tempo gasto em cada postura.</li>
+<li><strong>display(Markdown(…))</strong>: Exibe o relatório no formato elegante de Markdown.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="visualizações-gráficas" class="level2" data-number="3.15">
+<h2 data-number="3.15" class="anchored" data-anchor-id="visualizações-gráficas"><span class="header-section-number">3.15</span> Visualizações Gráficas</h2>
+<section id="gráfico-de-pizza-distribuição-de-posturas" class="level3" data-number="3.15.1">
+<h3 data-number="3.15.1" class="anchored" data-anchor-id="gráfico-de-pizza-distribuição-de-posturas"><span class="header-section-number">3.15.1</span> Gráfico de Pizza: Distribuição de Posturas</h3>
+<div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Gráfico de pizza para distribuição de tempo por postura</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="st">'Deitado'</span>, <span class="st">'Sentado'</span>, <span class="st">'Em Pé'</span>, <span class="st">'Background'</span>]</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>tempos <span class="op">=</span> [tempo_deitado, tempo_sentado, tempo_em_pe, tempo_background]</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> [<span class="st">'#FF6384'</span>, <span class="st">'#36A2EB'</span>, <span class="st">'#FFCE56'</span>, <span class="st">'#B0B0B0'</span>]</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">10</span>))</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">0</span>].pie(tempos, labels<span class="op">=</span>labels, autopct<span class="op">=</span><span class="st">'</span><span class="sc">%1.1f%%</span><span class="st">'</span>, colors<span class="op">=</span>colors)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">0</span>].set_title(<span class="st">'Distribuição de Tempos por Posição'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="explicação-15" class="level3" data-number="3.15.2">
+<h3 data-number="3.15.2" class="anchored" data-anchor-id="explicação-15"><span class="header-section-number">3.15.2</span> Explicação</h3>
+<ul>
+<li><strong>labels</strong>: Nomes das posturas.</li>
+<li><strong>tempos</strong>: Lista de tempos acumulados em cada postura.</li>
+<li><strong>colors</strong>: Cores atribuídas a cada postura.</li>
+<li><strong>plt.pie</strong>: Cria o gráfico de pizza.</li>
+<li><strong>autopct=‘%1.1f%%’</strong>: Exibe as porcentagens diretamente no gráfico.</li>
+</ul>
+<hr>
+</section>
+<section id="gráfico-kde-duração-das-posturas" class="level3" data-number="3.15.3">
+<h3 data-number="3.15.3" class="anchored" data-anchor-id="gráfico-kde-duração-das-posturas"><span class="header-section-number">3.15.3</span> Gráfico KDE: Duração das Posturas</h3>
+<div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Gráfico KDE para distribuição de durações por postura</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> class_id, label, color <span class="kw">in</span> <span class="bu">zip</span>([<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>], [<span class="st">'Deitado'</span>, <span class="st">'Sentado'</span>, <span class="st">'Em Pé'</span>], [<span class="st">'#FF6384'</span>, <span class="st">'#36A2EB'</span>, <span class="st">'#FFCE56'</span>]):</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> duracoes_posturas[class_id]:</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>        sns.kdeplot(duracoes_posturas[class_id], ax<span class="op">=</span>axes[<span class="dv">0</span>, <span class="dv">1</span>], fill<span class="op">=</span><span class="va">True</span>, color<span class="op">=</span>color, label<span class="op">=</span>label, bw_adjust<span class="op">=</span><span class="fl">1.5</span>, clip<span class="op">=</span>(<span class="dv">0</span>, <span class="va">None</span>))</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">1</span>].set_title(<span class="st">'Distribuição das Durações por Posição'</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">1</span>].set_xlabel(<span class="st">'Duração (s)'</span>)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">1</span>].set_ylabel(<span class="st">'Densidade'</span>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">1</span>].legend()</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>sns.despine(ax<span class="op">=</span>axes[<span class="dv">0</span>, <span class="dv">1</span>])</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="explicação-16" class="level3" data-number="3.15.4">
+<h3 data-number="3.15.4" class="anchored" data-anchor-id="explicação-16"><span class="header-section-number">3.15.4</span> Explicação</h3>
+<ul>
+<li><strong>zip()</strong>: Itera sobre as classes, rótulos e cores simultaneamente.</li>
+<li><strong>sns.kdeplot</strong>: Cria gráficos de densidade (KDE) para exibir a distribuição das durações.</li>
+<li><strong>bw_adjust=1.5</strong>: Ajusta a suavidade das curvas.</li>
+</ul>
+<hr>
+</section>
+<section id="histograma-transições-entre-posturas" class="level3" data-number="3.15.5">
+<h3 data-number="3.15.5" class="anchored" data-anchor-id="histograma-transições-entre-posturas"><span class="header-section-number">3.15.5</span> Histograma: Transições entre Posturas</h3>
+<div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Histograma de mudanças de postura</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>transicoes_numericas <span class="op">=</span> [<span class="ss">f'</span><span class="sc">{</span>t[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">→</span><span class="sc">{</span>t[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">'</span> <span class="cf">for</span> t <span class="kw">in</span> transicoes]</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>sns.histplot(transicoes_numericas, ax<span class="op">=</span>axes[<span class="dv">1</span>, <span class="dv">0</span>])</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>, <span class="dv">0</span>].set_title(<span class="st">'Frequência das Mudanças Entre Posturas'</span>)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>, <span class="dv">0</span>].set_xlabel(<span class="st">'Transição'</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>sns.despine(ax<span class="op">=</span>axes[<span class="dv">1</span>, <span class="dv">0</span>])</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="explicação-17" class="level3" data-number="3.15.6">
+<h3 data-number="3.15.6" class="anchored" data-anchor-id="explicação-17"><span class="header-section-number">3.15.6</span> Explicação</h3>
+<ul>
+<li><strong>transicoes_numericas</strong>: Transforma transições de posturas em strings formatadas.</li>
+<li><strong>sns.histplot</strong>: Plota um histograma da frequência das transições.</li>
+<li><strong>set_title()</strong>: Define o título do gráfico.</li>
+<li><strong>set_xlabel()</strong>: Adiciona rótulo ao eixo X.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="exibição-final-dos-gráficos" class="level2" data-number="3.16">
+<h2 data-number="3.16" class="anchored" data-anchor-id="exibição-final-dos-gráficos"><span class="header-section-number">3.16</span> Exibição Final dos Gráficos</h2>
+<div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Ajuste final da visualização</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>tplt.delaxes(axes[<span class="dv">1</span>, <span class="dv">1</span>])  <span class="co"># Remove espaço vazio</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="explicação-18" class="level3" data-number="3.16.1">
+<h3 data-number="3.16.1" class="anchored" data-anchor-id="explicação-18"><span class="header-section-number">3.16.1</span> Explicação</h3>
+<ul>
+<li><strong>plt.delaxes()</strong>: Remove um gráfico vazio para manter o layout limpo.</li>
+<li><strong>plt.tight_layout()</strong>: Garante que os gráficos não fiquem sobrepostos.</li>
+<li><strong>plt.show()</strong>: Renderiza os gráficos.</li>
+</ul>
+<hr>
+<p>Com isso, concluímos a análise visual e estatística das posturas detectadas. Podemos agora avançar para interpretar esses resultados e entender como eles podem informar decisões práticas! 🚀</p>
+<hr>
+</section>
+</section>
+</section>
+<section id="exemplo-de-aplicação-do-modelo" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Exemplo de Aplicação do Modelo</h1>
+<div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Carrega o modelo YOLO previamente treinado usando o arquivo de pesos "best.pt"</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>modelo <span class="op">=</span> YOLO(<span class="st">'/content/best.pt'</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Aplica o modelo ao vídeo "teste.mp4" para detectar posturas</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co"># O resultado será salvo e processado automaticamente pela função "processar_midia"</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>processar_midia(<span class="st">'/content/teste_2.mp4'</span>, modelo, tipo<span class="op">=</span><span class="st">'video'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><em>Exemplo de output:</em></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="git_visao.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Resultado da Detecção"><img src="git_visao.png" class="img-fluid figure-img" alt="Resultado da Detecção"></a></p>
+<figcaption>Resultado da Detecção</figcaption>
+</figure>
+</div>
+<hr>
+<p>Com isso, concluímos a análise visual e estatística das posturas detectadas. Essencialmente, a transição do modelo de classificação para a EDA transforma simples etiquetas (“Deitado”, “Sentado”) em uma narrativa estatística sobre o comportamento ao longo do tempo.</p>
+<!-- -->
+
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copiada");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copiada");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+  const viewSource = window.document.getElementById('quarto-view-source') ||
+                     window.document.getElementById('quarto-code-tools-source');
+  if (viewSource) {
+    const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+    viewSource.addEventListener("click", function(e) {
+      if (sourceUrl) {
+        // rstudio viewer pane
+        if (/\bcapabilities=\b/.test(window.location)) {
+          window.open(sourceUrl);
+        } else {
+          window.location.href = sourceUrl;
+        }
+      } else {
+        const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+        modal.show();
+      }
+      return false;
+    });
+  }
+  function toggleCodeHandler(show) {
+    return function(e) {
+      const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+      for (let i=0; i<detailsSrc.length; i++) {
+        const details = detailsSrc[i].parentElement;
+        if (show) {
+          details.open = true;
+        } else {
+          details.removeAttribute("open");
+        }
+      }
+      const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+      const fromCls = show ? "hidden" : "unhidden";
+      const toCls = show ? "unhidden" : "hidden";
+      for (let i=0; i<cellCodeDivs.length; i++) {
+        const codeDiv = cellCodeDivs[i];
+        if (codeDiv.classList.contains(fromCls)) {
+          codeDiv.classList.remove(fromCls);
+          codeDiv.classList.add(toCls);
+        } 
+      }
+      return false;
+    }
+  }
+  const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+  if (hideAllCode) {
+    hideAllCode.addEventListener("click", toggleCodeHandler(false));
+  }
+  const showAllCode = window.document.getElementById("quarto-show-all-code");
+  if (showAllCode) {
+    showAllCode.addEventListener("click", toggleCodeHandler(true));
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Código fonte</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="sourceCode" id="cb22" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Mini Livro: Detecção de Posturas com YOLO"</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "Pedro Caio"</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "02/25/2025"</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="an">lang:</span><span class="co"> "pt-BR"</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="an">lightbox:</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="co">  match: auto</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="co">  effect: zoom</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="co">  desc-position: bottom</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co">  loop: true</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-expand: 1</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-title: Sumário</span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="co">    number-sections: true</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: true</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a><span class="co">    code-summary: "Mostrar Código"</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a><span class="co">    theme:</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a><span class="co">        light: flatly</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a><span class="co">        dark: darkly</span></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a><span class="fu"># Introdução</span></span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>Este mini livro descreve em detalhes a lógica e a implementação de um algoritmo para detecção de posturas (deitado, sentado, em pé, background) utilizando o modelo YOLO (You Only Look Once). Vamos explorar cada linha de código, explicando sua função e a lógica por trás dela.</span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a><span class="fu"># Importação de Bibliotecas e Ambiente</span></span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a><span class="fu">## Configuração Inicial no Google Colab</span></span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>Este projeto foi desenvolvido para ser executado no **Google Colab**. Para garantir que tudo funcione corretamente, siga os passos abaixo:</span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Instalar a biblioteca YOLO**</span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a><span class="co"># Instala a biblioteca ultralytics para uso do modelo YOLO</span></span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install ultralytics</span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Importar o arquivo de pesos**</span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a>Certifique-se de que o arquivo de pesos <span class="in">`best.pt`</span> (modelo previamente treinado) esteja carregado no Colab.</span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a><span class="fu">## Importação das Bibliotecas</span></span>
+<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cv2  <span class="co"># OpenCV para manipulação de imagens e vídeos</span></span>
+<span id="cb22-53"><a href="#cb22-53" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time  <span class="co"># Medição de tempo e pausas na execução do código</span></span>
+<span id="cb22-54"><a href="#cb22-54" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os  <span class="co"># Manipulação de arquivos e diretórios</span></span>
+<span id="cb22-55"><a href="#cb22-55" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> warnings  <span class="co"># Ignora avisos desnecessários</span></span>
+<span id="cb22-56"><a href="#cb22-56" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt  <span class="co"># Geração de gráficos</span></span>
+<span id="cb22-57"><a href="#cb22-57" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns  <span class="co"># Visualizações estatísticas avançadas</span></span>
+<span id="cb22-58"><a href="#cb22-58" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> display, Markdown  <span class="co"># Exibição de Markdown em notebooks</span></span>
+<span id="cb22-59"><a href="#cb22-59" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> google.colab <span class="im">import</span> files  <span class="co"># Upload e download de arquivos no Google Colab</span></span>
+<span id="cb22-60"><a href="#cb22-60" aria-hidden="true" tabindex="-1"></a>warnings.filterwarnings(<span class="st">"ignore"</span>, category<span class="op">=</span><span class="pp">UserWarning</span>, module<span class="op">=</span><span class="st">"moviepy"</span>)</span>
+<span id="cb22-61"><a href="#cb22-61" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-62"><a href="#cb22-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-63"><a href="#cb22-63" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-64"><a href="#cb22-64" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cv2**: manipula vídeos e imagens, permitindo leitura, escrita, e anotações visuais.</span>
+<span id="cb22-65"><a href="#cb22-65" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**time**: mede durações, essencial para capturar tempos das posturas.</span>
+<span id="cb22-66"><a href="#cb22-66" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**os**: gerencia arquivos e diretórios.</span>
+<span id="cb22-67"><a href="#cb22-67" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**warnings**: suprime mensagens desnecessárias para manter o console limpo.</span>
+<span id="cb22-68"><a href="#cb22-68" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**matplotlib**: cria gráficos, como os gráficos de pizza.</span>
+<span id="cb22-69"><a href="#cb22-69" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**seaborn**: facilita gráficos estatísticos.</span>
+<span id="cb22-70"><a href="#cb22-70" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**IPython.display**: exibe textos formatados em Markdown.</span>
+<span id="cb22-71"><a href="#cb22-71" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**google.colab**: manipula arquivos diretamente no Google Colab.</span>
+<span id="cb22-72"><a href="#cb22-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-73"><a href="#cb22-73" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-74"><a href="#cb22-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-75"><a href="#cb22-75" aria-hidden="true" tabindex="-1"></a><span class="fu"># Função principal: `processar_midia`</span></span>
+<span id="cb22-76"><a href="#cb22-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-77"><a href="#cb22-77" aria-hidden="true" tabindex="-1"></a><span class="fu">## Estrutura e Lógica Geral</span></span>
+<span id="cb22-78"><a href="#cb22-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-79"><a href="#cb22-79" aria-hidden="true" tabindex="-1"></a>A função <span class="in">`processar_midia`</span> é responsável por processar imagens ou vídeos, aplicar o modelo YOLO para detecção de posturas e gerar relatórios sobre o tempo gasto em cada postura. Vamos destrinchar cada parte dela.</span>
+<span id="cb22-80"><a href="#cb22-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-81"><a href="#cb22-81" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-82"><a href="#cb22-82" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> processar_midia(caminho_entrada, modelo, tipo<span class="op">=</span><span class="st">'video'</span>, caminho_saida<span class="op">=</span><span class="st">'/content/saida.mp4'</span>):</span>
+<span id="cb22-83"><a href="#cb22-83" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> tipo <span class="kw">not</span> <span class="kw">in</span> [<span class="st">'imagem'</span>, <span class="st">'video'</span>]:</span>
+<span id="cb22-84"><a href="#cb22-84" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"Tipo deve ser 'imagem' ou 'video'."</span>)</span>
+<span id="cb22-85"><a href="#cb22-85" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-86"><a href="#cb22-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-87"><a href="#cb22-87" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-88"><a href="#cb22-88" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**caminho_entrada**: Caminho para o arquivo de entrada (imagem ou vídeo).</span>
+<span id="cb22-89"><a href="#cb22-89" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**modelo**: O modelo YOLO previamente treinado que será usado para detectar posturas.</span>
+<span id="cb22-90"><a href="#cb22-90" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tipo**: Define se o arquivo de entrada é uma imagem ou um vídeo. Caso não seja nem 'imagem' nem 'video', a função lança um erro com o <span class="in">`raise ValueError()`</span>.</span>
+<span id="cb22-91"><a href="#cb22-91" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**caminho_saida**: Caminho para onde o arquivo processado (com as anotações visuais) será salvo.</span>
+<span id="cb22-92"><a href="#cb22-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-93"><a href="#cb22-93" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-94"><a href="#cb22-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-95"><a href="#cb22-95" aria-hidden="true" tabindex="-1"></a><span class="fu">## Inicializando Contadores</span></span>
+<span id="cb22-96"><a href="#cb22-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-97"><a href="#cb22-97" aria-hidden="true" tabindex="-1"></a>Os contadores serão usados para medir o tempo que a pessoa passa em cada postura ao longo do vídeo.</span>
+<span id="cb22-98"><a href="#cb22-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-99"><a href="#cb22-99" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-100"><a href="#cb22-100" aria-hidden="true" tabindex="-1"></a>    tempo_deitado <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb22-101"><a href="#cb22-101" aria-hidden="true" tabindex="-1"></a>    tempo_sentado <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb22-102"><a href="#cb22-102" aria-hidden="true" tabindex="-1"></a>    tempo_em_pe <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb22-103"><a href="#cb22-103" aria-hidden="true" tabindex="-1"></a>    tempo_background <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb22-104"><a href="#cb22-104" aria-hidden="true" tabindex="-1"></a>    tempo_total <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb22-105"><a href="#cb22-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-106"><a href="#cb22-106" aria-hidden="true" tabindex="-1"></a>    posturas_tempo <span class="op">=</span> []</span>
+<span id="cb22-107"><a href="#cb22-107" aria-hidden="true" tabindex="-1"></a>    transicoes <span class="op">=</span> []</span>
+<span id="cb22-108"><a href="#cb22-108" aria-hidden="true" tabindex="-1"></a>    duracoes_posturas <span class="op">=</span> {<span class="dv">0</span>: [], <span class="dv">1</span>: [], <span class="dv">2</span>: [], <span class="dv">3</span>: []}  <span class="co"># 0: Deitado, 1: Sentado, 2: Em Pé, 3: Background</span></span>
+<span id="cb22-109"><a href="#cb22-109" aria-hidden="true" tabindex="-1"></a>    inicio_execucao <span class="op">=</span> time.time()</span>
+<span id="cb22-110"><a href="#cb22-110" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-111"><a href="#cb22-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-112"><a href="#cb22-112" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-113"><a href="#cb22-113" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempo_deitado**: Conta quantos frames mostram a pessoa deitada.</span>
+<span id="cb22-114"><a href="#cb22-114" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempo_sentado**: Conta quantos frames mostram a pessoa sentada.</span>
+<span id="cb22-115"><a href="#cb22-115" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempo_em_pe**: Conta quantos frames mostram a pessoa em pé.</span>
+<span id="cb22-116"><a href="#cb22-116" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempo_background**: Conta quantos frames sem nenhuma detecção relevante (background).</span>
+<span id="cb22-117"><a href="#cb22-117" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempo_total**: Número total de frames processados.</span>
+<span id="cb22-118"><a href="#cb22-118" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**posturas_tempo**: Lista que registra a postura detectada em cada frame, útil para análises posteriores.</span>
+<span id="cb22-119"><a href="#cb22-119" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**transicoes**: Lista de transições entre posturas, usada para entender mudanças ao longo do vídeo.</span>
+<span id="cb22-120"><a href="#cb22-120" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**duracoes_posturas**: Um dicionário que armazena a duração de cada postura em segundos.</span>
+<span id="cb22-121"><a href="#cb22-121" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**inicio_execucao**: Marca o tempo de início da execução, para depois calcular o tempo total gasto no processamento.</span>
+<span id="cb22-122"><a href="#cb22-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-123"><a href="#cb22-123" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-124"><a href="#cb22-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-125"><a href="#cb22-125" aria-hidden="true" tabindex="-1"></a><span class="fu">## Processamento de Imagem</span></span>
+<span id="cb22-126"><a href="#cb22-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-127"><a href="#cb22-127" aria-hidden="true" tabindex="-1"></a>Caso o tipo de mídia seja 'imagem', o código processa a imagem individualmente.</span>
+<span id="cb22-128"><a href="#cb22-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-129"><a href="#cb22-129" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-130"><a href="#cb22-130" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> tipo <span class="op">==</span> <span class="st">'imagem'</span>:</span>
+<span id="cb22-131"><a href="#cb22-131" aria-hidden="true" tabindex="-1"></a>        img <span class="op">=</span> cv2.imread(caminho_entrada)</span>
+<span id="cb22-132"><a href="#cb22-132" aria-hidden="true" tabindex="-1"></a>        results <span class="op">=</span> modelo.predict(img, conf<span class="op">=</span><span class="fl">0.1</span>, verbose<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb22-133"><a href="#cb22-133" aria-hidden="true" tabindex="-1"></a>        annotated_img <span class="op">=</span> results[<span class="dv">0</span>].plot()</span>
+<span id="cb22-134"><a href="#cb22-134" aria-hidden="true" tabindex="-1"></a>        cv2.imwrite(caminho_saida, annotated_img)</span>
+<span id="cb22-135"><a href="#cb22-135" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> caminho_saida</span>
+<span id="cb22-136"><a href="#cb22-136" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-137"><a href="#cb22-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-138"><a href="#cb22-138" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-139"><a href="#cb22-139" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cv2.imread(caminho_entrada)**: Lê a imagem localizada no caminho especificado.</span>
+<span id="cb22-140"><a href="#cb22-140" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**modelo.predict(img, conf=0.1, verbose=False)**: Aplica o modelo YOLO para detectar posturas na imagem.</span>
+<span id="cb22-141"><a href="#cb22-141" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span><span class="in">`conf=0.1`</span>: Define a confiança mínima (10%) para considerar uma detecção válida.</span>
+<span id="cb22-142"><a href="#cb22-142" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span><span class="in">`verbose=False`</span>: Desativa saídas excessivas no console.</span>
+<span id="cb22-143"><a href="#cb22-143" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**results[0].plot()**: Desenha as caixas delimitadoras (bounding boxes) ao redor das posturas detectadas.</span>
+<span id="cb22-144"><a href="#cb22-144" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cv2.imwrite(caminho_saida, annotated_img)**: Salva a imagem anotada no caminho especificado.</span>
+<span id="cb22-145"><a href="#cb22-145" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**return caminho_saida**: Retorna o caminho do arquivo gerado.</span>
+<span id="cb22-146"><a href="#cb22-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-147"><a href="#cb22-147" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-148"><a href="#cb22-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-149"><a href="#cb22-149" aria-hidden="true" tabindex="-1"></a><span class="fu">## Processamento de Vídeo</span></span>
+<span id="cb22-150"><a href="#cb22-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-151"><a href="#cb22-151" aria-hidden="true" tabindex="-1"></a>Agora, vamos ver como o código processa vídeos frame a frame.</span>
+<span id="cb22-152"><a href="#cb22-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-153"><a href="#cb22-153" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-154"><a href="#cb22-154" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb22-155"><a href="#cb22-155" aria-hidden="true" tabindex="-1"></a>        cap <span class="op">=</span> cv2.VideoCapture(caminho_entrada)</span>
+<span id="cb22-156"><a href="#cb22-156" aria-hidden="true" tabindex="-1"></a>        width <span class="op">=</span> <span class="bu">int</span>(cap.get(cv2.CAP_PROP_FRAME_WIDTH))</span>
+<span id="cb22-157"><a href="#cb22-157" aria-hidden="true" tabindex="-1"></a>        height <span class="op">=</span> <span class="bu">int</span>(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))</span>
+<span id="cb22-158"><a href="#cb22-158" aria-hidden="true" tabindex="-1"></a>        fps <span class="op">=</span> <span class="bu">int</span>(cap.get(cv2.CAP_PROP_FPS))</span>
+<span id="cb22-159"><a href="#cb22-159" aria-hidden="true" tabindex="-1"></a>        total_frames <span class="op">=</span> <span class="bu">int</span>(cap.get(cv2.CAP_PROP_FRAME_COUNT))</span>
+<span id="cb22-160"><a href="#cb22-160" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-161"><a href="#cb22-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-162"><a href="#cb22-162" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-163"><a href="#cb22-163" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cv2.VideoCapture(caminho_entrada)**: Carrega o vídeo no caminho especificado.</span>
+<span id="cb22-164"><a href="#cb22-164" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cap.get(cv2.CAP_PROP_FRAME_WIDTH)**: Obtém a largura dos frames do vídeo.</span>
+<span id="cb22-165"><a href="#cb22-165" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cap.get(cv2.CAP_PROP_FRAME_HEIGHT)**: Obtém a altura dos frames.</span>
+<span id="cb22-166"><a href="#cb22-166" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cap.get(cv2.CAP_PROP_FPS)**: Recupera o número de quadros por segundo (FPS), essencial para converter frames em segundos.</span>
+<span id="cb22-167"><a href="#cb22-167" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cap.get(cv2.CAP_PROP_FRAME_COUNT)**: Conta o número total de frames no vídeo.</span>
+<span id="cb22-168"><a href="#cb22-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-169"><a href="#cb22-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-170"><a href="#cb22-170" aria-hidden="true" tabindex="-1"></a><span class="fu">## Definição do Codec e Criação do Objeto de Escrita de Vídeo</span></span>
+<span id="cb22-171"><a href="#cb22-171" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-172"><a href="#cb22-172" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-173"><a href="#cb22-173" aria-hidden="true" tabindex="-1"></a><span class="co"># Define o codec de vídeo e cria um objeto para salvar o vídeo processado </span></span>
+<span id="cb22-174"><a href="#cb22-174" aria-hidden="true" tabindex="-1"></a>fourcc <span class="op">=</span> cv2.VideoWriter_fourcc(<span class="op">*</span><span class="st">'XVID'</span>)</span>
+<span id="cb22-175"><a href="#cb22-175" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> cv2.VideoWriter(caminho_saida, fourcc, fps, (width, height))</span>
+<span id="cb22-176"><a href="#cb22-176" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-177"><a href="#cb22-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-178"><a href="#cb22-178" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-179"><a href="#cb22-179" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**fourcc**: Define o codec usado para compressão do vídeo. </span>
+<span id="cb22-180"><a href="#cb22-180" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span><span class="in">`*'XVID'`</span>: Codec Xvid, amplamente suportado e eficiente.</span>
+<span id="cb22-181"><a href="#cb22-181" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cv2.VideoWriter**: Cria um objeto para salvar o vídeo processado.</span>
+<span id="cb22-182"><a href="#cb22-182" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>**caminho_saida**: Caminho do arquivo de saída.</span>
+<span id="cb22-183"><a href="#cb22-183" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>**fourcc**: Codec para compressão.</span>
+<span id="cb22-184"><a href="#cb22-184" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>**fps**: Frames por segundo.</span>
+<span id="cb22-185"><a href="#cb22-185" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>**(width, height)**: Dimensões do vídeo.</span>
+<span id="cb22-186"><a href="#cb22-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-187"><a href="#cb22-187" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-188"><a href="#cb22-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-189"><a href="#cb22-189" aria-hidden="true" tabindex="-1"></a><span class="fu">## Controle de Transições</span></span>
+<span id="cb22-190"><a href="#cb22-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-191"><a href="#cb22-191" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-192"><a href="#cb22-192" aria-hidden="true" tabindex="-1"></a><span class="co"># Inicializa variáveis para rastrear transições entre posturas</span></span>
+<span id="cb22-193"><a href="#cb22-193" aria-hidden="true" tabindex="-1"></a>postura_anterior <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb22-194"><a href="#cb22-194" aria-hidden="true" tabindex="-1"></a>duracao_atual <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb22-195"><a href="#cb22-195" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-196"><a href="#cb22-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-197"><a href="#cb22-197" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-198"><a href="#cb22-198" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**postura_anterior**: Armazena a postura do frame anterior para comparação.</span>
+<span id="cb22-199"><a href="#cb22-199" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**duracao_atual**: Conta quantos frames a postura atual perdura.</span>
+<span id="cb22-200"><a href="#cb22-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-201"><a href="#cb22-201" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-202"><a href="#cb22-202" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-203"><a href="#cb22-203" aria-hidden="true" tabindex="-1"></a><span class="fu">## Loop de Processamento de Frames</span></span>
+<span id="cb22-204"><a href="#cb22-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-205"><a href="#cb22-205" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-206"><a href="#cb22-206" aria-hidden="true" tabindex="-1"></a><span class="co"># Loop para processar cada quadro do vídeo</span></span>
+<span id="cb22-207"><a href="#cb22-207" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> cap.isOpened():</span>
+<span id="cb22-208"><a href="#cb22-208" aria-hidden="true" tabindex="-1"></a>    ret, frame <span class="op">=</span> cap.read()  <span class="co"># Lê um quadro do vídeo</span></span>
+<span id="cb22-209"><a href="#cb22-209" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> ret:</span>
+<span id="cb22-210"><a href="#cb22-210" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span>  <span class="co"># Encerra o loop quando não há mais quadros</span></span>
+<span id="cb22-211"><a href="#cb22-211" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-212"><a href="#cb22-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-213"><a href="#cb22-213" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-214"><a href="#cb22-214" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cap.isOpened()**: Verifica se o vídeo foi aberto corretamente.</span>
+<span id="cb22-215"><a href="#cb22-215" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cap.read()**: Lê o próximo frame.</span>
+<span id="cb22-216"><a href="#cb22-216" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**ret**: Retorna <span class="in">`False`</span> quando os quadros terminam.</span>
+<span id="cb22-217"><a href="#cb22-217" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**break**: Encerra o loop ao final do vídeo.</span>
+<span id="cb22-218"><a href="#cb22-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-219"><a href="#cb22-219" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-220"><a href="#cb22-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-221"><a href="#cb22-221" aria-hidden="true" tabindex="-1"></a><span class="fu">## Aplicação do Modelo YOLO</span></span>
+<span id="cb22-222"><a href="#cb22-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-223"><a href="#cb22-223" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-224"><a href="#cb22-224" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Aplica o modelo ao quadro e obtém os resultados</span></span>
+<span id="cb22-225"><a href="#cb22-225" aria-hidden="true" tabindex="-1"></a>    results <span class="op">=</span> modelo.predict(frame, conf<span class="op">=</span><span class="fl">0.1</span>, verbose<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb22-226"><a href="#cb22-226" aria-hidden="true" tabindex="-1"></a>    annotated_frame <span class="op">=</span> results[<span class="dv">0</span>].plot()  <span class="co"># Adiciona anotações ao quadro</span></span>
+<span id="cb22-227"><a href="#cb22-227" aria-hidden="true" tabindex="-1"></a>    out.write(annotated_frame)  <span class="co"># Salva o quadro anotado</span></span>
+<span id="cb22-228"><a href="#cb22-228" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-229"><a href="#cb22-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-230"><a href="#cb22-230" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-231"><a href="#cb22-231" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**modelo.predict()**: Aplica YOLO ao frame.</span>
+<span id="cb22-232"><a href="#cb22-232" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>**frame**: Quadro atual.</span>
+<span id="cb22-233"><a href="#cb22-233" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>**conf=0.1**: Confiança mínima de 10% para detectar posturas.</span>
+<span id="cb22-234"><a href="#cb22-234" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>**verbose=False**: Desativa saídas no console.</span>
+<span id="cb22-235"><a href="#cb22-235" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**results[0].plot()**: Desenha as caixas delimitadoras (bounding boxes).</span>
+<span id="cb22-236"><a href="#cb22-236" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**out.write()**: Grava o quadro anotado no vídeo de saída.</span>
+<span id="cb22-237"><a href="#cb22-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-238"><a href="#cb22-238" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-239"><a href="#cb22-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-240"><a href="#cb22-240" aria-hidden="true" tabindex="-1"></a><span class="fu">## Classificação das Posturas</span></span>
+<span id="cb22-241"><a href="#cb22-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-242"><a href="#cb22-242" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-243"><a href="#cb22-243" aria-hidden="true" tabindex="-1"></a>    frame_classificado <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb22-244"><a href="#cb22-244" aria-hidden="true" tabindex="-1"></a>    class_id <span class="op">=</span> <span class="dv">3</span>  <span class="co"># Background padrão</span></span>
+<span id="cb22-245"><a href="#cb22-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-246"><a href="#cb22-246" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> result <span class="kw">in</span> results:</span>
+<span id="cb22-247"><a href="#cb22-247" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> box <span class="kw">in</span> result.boxes:</span>
+<span id="cb22-248"><a href="#cb22-248" aria-hidden="true" tabindex="-1"></a>            class_id <span class="op">=</span> <span class="bu">int</span>(box.cls)</span>
+<span id="cb22-249"><a href="#cb22-249" aria-hidden="true" tabindex="-1"></a>            frame_classificado <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb22-250"><a href="#cb22-250" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb22-251"><a href="#cb22-251" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-252"><a href="#cb22-252" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-253"><a href="#cb22-253" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-254"><a href="#cb22-254" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**frame_classificado**: Marca se houve alguma detecção.</span>
+<span id="cb22-255"><a href="#cb22-255" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**class_id = 3**: Assume que o frame é background por padrão.</span>
+<span id="cb22-256"><a href="#cb22-256" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**for result in results**: Itera sobre os resultados.</span>
+<span id="cb22-257"><a href="#cb22-257" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**int(box.cls)**: Obtém a classe detectada.</span>
+<span id="cb22-258"><a href="#cb22-258" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**break**: Para após a primeira detecção válida.</span>
+<span id="cb22-259"><a href="#cb22-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-260"><a href="#cb22-260" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-261"><a href="#cb22-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-262"><a href="#cb22-262" aria-hidden="true" tabindex="-1"></a><span class="fu">## Contagem de Posturas</span></span>
+<span id="cb22-263"><a href="#cb22-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-264"><a href="#cb22-264" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-265"><a href="#cb22-265" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> frame_classificado:</span>
+<span id="cb22-266"><a href="#cb22-266" aria-hidden="true" tabindex="-1"></a>        tempo_background <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb22-267"><a href="#cb22-267" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb22-268"><a href="#cb22-268" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> class_id <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb22-269"><a href="#cb22-269" aria-hidden="true" tabindex="-1"></a>            tempo_deitado <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb22-270"><a href="#cb22-270" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> class_id <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb22-271"><a href="#cb22-271" aria-hidden="true" tabindex="-1"></a>            tempo_sentado <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb22-272"><a href="#cb22-272" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> class_id <span class="op">==</span> <span class="dv">2</span>:</span>
+<span id="cb22-273"><a href="#cb22-273" aria-hidden="true" tabindex="-1"></a>            tempo_em_pe <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb22-274"><a href="#cb22-274" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-275"><a href="#cb22-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-276"><a href="#cb22-276" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-277"><a href="#cb22-277" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Atualiza os contadores de tempo para cada postura.</span>
+<span id="cb22-278"><a href="#cb22-278" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempo_background**: Incrementado caso nenhuma postura seja detectada.</span>
+<span id="cb22-279"><a href="#cb22-279" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**class_id == 0**: Postura deitado.</span>
+<span id="cb22-280"><a href="#cb22-280" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**class_id == 1**: Postura sentado.</span>
+<span id="cb22-281"><a href="#cb22-281" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**class_id == 2**: Postura em pé.</span>
+<span id="cb22-282"><a href="#cb22-282" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-283"><a href="#cb22-283" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-284"><a href="#cb22-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-285"><a href="#cb22-285" aria-hidden="true" tabindex="-1"></a><span class="fu">## Controle de Transições</span></span>
+<span id="cb22-286"><a href="#cb22-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-287"><a href="#cb22-287" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-288"><a href="#cb22-288" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> postura_anterior <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb22-289"><a href="#cb22-289" aria-hidden="true" tabindex="-1"></a>        postura_anterior <span class="op">=</span> class_id</span>
+<span id="cb22-290"><a href="#cb22-290" aria-hidden="true" tabindex="-1"></a>        duracao_atual <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb22-291"><a href="#cb22-291" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> postura_anterior <span class="op">==</span> class_id:</span>
+<span id="cb22-292"><a href="#cb22-292" aria-hidden="true" tabindex="-1"></a>        duracao_atual <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb22-293"><a href="#cb22-293" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb22-294"><a href="#cb22-294" aria-hidden="true" tabindex="-1"></a>        duracoes_posturas[postura_anterior].append(duracao_atual <span class="op">/</span> fps)</span>
+<span id="cb22-295"><a href="#cb22-295" aria-hidden="true" tabindex="-1"></a>        transicoes.append((postura_anterior, class_id))</span>
+<span id="cb22-296"><a href="#cb22-296" aria-hidden="true" tabindex="-1"></a>        postura_anterior <span class="op">=</span> class_id</span>
+<span id="cb22-297"><a href="#cb22-297" aria-hidden="true" tabindex="-1"></a>        duracao_atual <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb22-298"><a href="#cb22-298" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-299"><a href="#cb22-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-300"><a href="#cb22-300" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-301"><a href="#cb22-301" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**postura_anterior**: Guarda a última postura detectada.</span>
+<span id="cb22-302"><a href="#cb22-302" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**duracao_atual**: Incrementa enquanto a postura não muda.</span>
+<span id="cb22-303"><a href="#cb22-303" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**duracoes_posturas**: Armazena a duração de cada postura em segundos.</span>
+<span id="cb22-304"><a href="#cb22-304" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**transicoes**: Registra mudanças de postura.</span>
+<span id="cb22-305"><a href="#cb22-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-306"><a href="#cb22-306" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-307"><a href="#cb22-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-308"><a href="#cb22-308" aria-hidden="true" tabindex="-1"></a><span class="fu">## Finalizando o Processo</span></span>
+<span id="cb22-309"><a href="#cb22-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-310"><a href="#cb22-310" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-311"><a href="#cb22-311" aria-hidden="true" tabindex="-1"></a>    tempo_total <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb22-312"><a href="#cb22-312" aria-hidden="true" tabindex="-1"></a>    posturas_tempo.append(class_id)</span>
+<span id="cb22-313"><a href="#cb22-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-314"><a href="#cb22-314" aria-hidden="true" tabindex="-1"></a>cap.release()</span>
+<span id="cb22-315"><a href="#cb22-315" aria-hidden="true" tabindex="-1"></a>out.release()</span>
+<span id="cb22-316"><a href="#cb22-316" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-317"><a href="#cb22-317" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-318"><a href="#cb22-318" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-319"><a href="#cb22-319" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempo_total**: Contagem total de frames.</span>
+<span id="cb22-320"><a href="#cb22-320" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**posturas_tempo**: Lista com a sequência de posturas.</span>
+<span id="cb22-321"><a href="#cb22-321" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**cap.release()**: Fecha o vídeo de entrada.</span>
+<span id="cb22-322"><a href="#cb22-322" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**out.release()**: Finaliza e salva o vídeo anotado.</span>
+<span id="cb22-323"><a href="#cb22-323" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-324"><a href="#cb22-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-325"><a href="#cb22-325" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-326"><a href="#cb22-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-327"><a href="#cb22-327" aria-hidden="true" tabindex="-1"></a><span class="fu">## Registro do Tempo de Execução</span></span>
+<span id="cb22-328"><a href="#cb22-328" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-329"><a href="#cb22-329" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-330"><a href="#cb22-330" aria-hidden="true" tabindex="-1"></a><span class="co"># Registra o tempo de execução</span></span>
+<span id="cb22-331"><a href="#cb22-331" aria-hidden="true" tabindex="-1"></a>tempo_execucao <span class="op">=</span> fim_execucao <span class="op">-</span> inicio_execucao</span>
+<span id="cb22-332"><a href="#cb22-332" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-333"><a href="#cb22-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-334"><a href="#cb22-334" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-335"><a href="#cb22-335" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**fim_execucao**: Marca o momento em que o processamento do vídeo é concluído.</span>
+<span id="cb22-336"><a href="#cb22-336" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**inicio_execucao**: Foi definido antes do loop de processamento.</span>
+<span id="cb22-337"><a href="#cb22-337" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempo_execucao**: Subtraindo um pelo outro, obtemos o tempo total gasto para processar o vídeo.</span>
+<span id="cb22-338"><a href="#cb22-338" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-339"><a href="#cb22-339" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-340"><a href="#cb22-340" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-341"><a href="#cb22-341" aria-hidden="true" tabindex="-1"></a><span class="fu">## Geração do Relatório de Posturas</span></span>
+<span id="cb22-342"><a href="#cb22-342" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-343"><a href="#cb22-343" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-344"><a href="#cb22-344" aria-hidden="true" tabindex="-1"></a><span class="co"># Exibir relatório de tempo em formato Markdown</span></span>
+<span id="cb22-345"><a href="#cb22-345" aria-hidden="true" tabindex="-1"></a>relatorio_tabela <span class="op">=</span> <span class="ss">f"""</span></span>
+<span id="cb22-346"><a href="#cb22-346" aria-hidden="true" tabindex="-1"></a><span class="ss"># 📊 Relatório de Tempo (em Segundos)</span></span>
+<span id="cb22-347"><a href="#cb22-347" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-348"><a href="#cb22-348" aria-hidden="true" tabindex="-1"></a><span class="ss">| Categoria      | Tempo (s) | Porcentagem |</span></span>
+<span id="cb22-349"><a href="#cb22-349" aria-hidden="true" tabindex="-1"></a><span class="ss">|---------------|----------|------------|</span></span>
+<span id="cb22-350"><a href="#cb22-350" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Deitado**   | </span><span class="sc">{</span>tempo_deitado <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">  | </span><span class="sc">{</span>(tempo_deitado <span class="op">/</span> tempo_total) <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss">% |</span></span>
+<span id="cb22-351"><a href="#cb22-351" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Sentado**   | </span><span class="sc">{</span>tempo_sentado <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">  | </span><span class="sc">{</span>(tempo_sentado <span class="op">/</span> tempo_total) <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss">% |</span></span>
+<span id="cb22-352"><a href="#cb22-352" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Em Pé**     | </span><span class="sc">{</span>tempo_em_pe <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">    | </span><span class="sc">{</span>(tempo_em_pe <span class="op">/</span> tempo_total) <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss">% |</span></span>
+<span id="cb22-353"><a href="#cb22-353" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Background** | </span><span class="sc">{</span>tempo_background <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">  | </span><span class="sc">{</span>(tempo_background <span class="op">/</span> tempo_total) <span class="op">*</span> <span class="dv">100</span><span class="sc">:.2f}</span><span class="ss">% |</span></span>
+<span id="cb22-354"><a href="#cb22-354" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Duração do Vídeo**  | </span><span class="sc">{</span>total_frames <span class="op">/</span> fps<span class="sc">:.2f}</span><span class="ss">  | 100% |</span></span>
+<span id="cb22-355"><a href="#cb22-355" aria-hidden="true" tabindex="-1"></a><span class="ss">| **Tempo de Processamento** | </span><span class="sc">{</span>tempo_execucao<span class="sc">:.2f}</span><span class="ss"> | - |</span></span>
+<span id="cb22-356"><a href="#cb22-356" aria-hidden="true" tabindex="-1"></a><span class="ss">"""</span></span>
+<span id="cb22-357"><a href="#cb22-357" aria-hidden="true" tabindex="-1"></a>display(Markdown(relatorio_tabela))</span>
+<span id="cb22-358"><a href="#cb22-358" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-359"><a href="#cb22-359" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-360"><a href="#cb22-360" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-361"><a href="#cb22-361" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**relatorio_tabela**: Usa uma string formatada para criar um relatório em Markdown.</span>
+<span id="cb22-362"><a href="#cb22-362" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempo_deitado / fps**: Converte frames em segundos.</span>
+<span id="cb22-363"><a href="#cb22-363" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**(tempo_deitado / tempo_total) * 100**: Calcula a porcentagem de tempo gasto em cada postura.</span>
+<span id="cb22-364"><a href="#cb22-364" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**display(Markdown(...))**: Exibe o relatório no formato elegante de Markdown.</span>
+<span id="cb22-365"><a href="#cb22-365" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-366"><a href="#cb22-366" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-367"><a href="#cb22-367" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-368"><a href="#cb22-368" aria-hidden="true" tabindex="-1"></a><span class="fu">## Visualizações Gráficas</span></span>
+<span id="cb22-369"><a href="#cb22-369" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-370"><a href="#cb22-370" aria-hidden="true" tabindex="-1"></a><span class="fu">### Gráfico de Pizza: Distribuição de Posturas</span></span>
+<span id="cb22-371"><a href="#cb22-371" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-372"><a href="#cb22-372" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-373"><a href="#cb22-373" aria-hidden="true" tabindex="-1"></a><span class="co"># Gráfico de pizza para distribuição de tempo por postura</span></span>
+<span id="cb22-374"><a href="#cb22-374" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="st">'Deitado'</span>, <span class="st">'Sentado'</span>, <span class="st">'Em Pé'</span>, <span class="st">'Background'</span>]</span>
+<span id="cb22-375"><a href="#cb22-375" aria-hidden="true" tabindex="-1"></a>tempos <span class="op">=</span> [tempo_deitado, tempo_sentado, tempo_em_pe, tempo_background]</span>
+<span id="cb22-376"><a href="#cb22-376" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> [<span class="st">'#FF6384'</span>, <span class="st">'#36A2EB'</span>, <span class="st">'#FFCE56'</span>, <span class="st">'#B0B0B0'</span>]</span>
+<span id="cb22-377"><a href="#cb22-377" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-378"><a href="#cb22-378" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">10</span>))</span>
+<span id="cb22-379"><a href="#cb22-379" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">0</span>].pie(tempos, labels<span class="op">=</span>labels, autopct<span class="op">=</span><span class="st">'</span><span class="sc">%1.1f%%</span><span class="st">'</span>, colors<span class="op">=</span>colors)</span>
+<span id="cb22-380"><a href="#cb22-380" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">0</span>].set_title(<span class="st">'Distribuição de Tempos por Posição'</span>)</span>
+<span id="cb22-381"><a href="#cb22-381" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-382"><a href="#cb22-382" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-383"><a href="#cb22-383" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-384"><a href="#cb22-384" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**labels**: Nomes das posturas.</span>
+<span id="cb22-385"><a href="#cb22-385" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**tempos**: Lista de tempos acumulados em cada postura.</span>
+<span id="cb22-386"><a href="#cb22-386" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**colors**: Cores atribuídas a cada postura.</span>
+<span id="cb22-387"><a href="#cb22-387" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**plt.pie**: Cria o gráfico de pizza.</span>
+<span id="cb22-388"><a href="#cb22-388" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**autopct='%1.1f%%'**: Exibe as porcentagens diretamente no gráfico.</span>
+<span id="cb22-389"><a href="#cb22-389" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-390"><a href="#cb22-390" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-391"><a href="#cb22-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-392"><a href="#cb22-392" aria-hidden="true" tabindex="-1"></a><span class="fu">### Gráfico KDE: Duração das Posturas</span></span>
+<span id="cb22-393"><a href="#cb22-393" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-394"><a href="#cb22-394" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-395"><a href="#cb22-395" aria-hidden="true" tabindex="-1"></a><span class="co"># Gráfico KDE para distribuição de durações por postura</span></span>
+<span id="cb22-396"><a href="#cb22-396" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> class_id, label, color <span class="kw">in</span> <span class="bu">zip</span>([<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>], [<span class="st">'Deitado'</span>, <span class="st">'Sentado'</span>, <span class="st">'Em Pé'</span>], [<span class="st">'#FF6384'</span>, <span class="st">'#36A2EB'</span>, <span class="st">'#FFCE56'</span>]):</span>
+<span id="cb22-397"><a href="#cb22-397" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> duracoes_posturas[class_id]:</span>
+<span id="cb22-398"><a href="#cb22-398" aria-hidden="true" tabindex="-1"></a>        sns.kdeplot(duracoes_posturas[class_id], ax<span class="op">=</span>axes[<span class="dv">0</span>, <span class="dv">1</span>], fill<span class="op">=</span><span class="va">True</span>, color<span class="op">=</span>color, label<span class="op">=</span>label, bw_adjust<span class="op">=</span><span class="fl">1.5</span>, clip<span class="op">=</span>(<span class="dv">0</span>, <span class="va">None</span>))</span>
+<span id="cb22-399"><a href="#cb22-399" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-400"><a href="#cb22-400" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">1</span>].set_title(<span class="st">'Distribuição das Durações por Posição'</span>)</span>
+<span id="cb22-401"><a href="#cb22-401" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">1</span>].set_xlabel(<span class="st">'Duração (s)'</span>)</span>
+<span id="cb22-402"><a href="#cb22-402" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">1</span>].set_ylabel(<span class="st">'Densidade'</span>)</span>
+<span id="cb22-403"><a href="#cb22-403" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>, <span class="dv">1</span>].legend()</span>
+<span id="cb22-404"><a href="#cb22-404" aria-hidden="true" tabindex="-1"></a>sns.despine(ax<span class="op">=</span>axes[<span class="dv">0</span>, <span class="dv">1</span>])</span>
+<span id="cb22-405"><a href="#cb22-405" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-406"><a href="#cb22-406" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-407"><a href="#cb22-407" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-408"><a href="#cb22-408" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**zip()**: Itera sobre as classes, rótulos e cores simultaneamente.</span>
+<span id="cb22-409"><a href="#cb22-409" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**sns.kdeplot**: Cria gráficos de densidade (KDE) para exibir a distribuição das durações.</span>
+<span id="cb22-410"><a href="#cb22-410" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**bw_adjust=1.5**: Ajusta a suavidade das curvas.</span>
+<span id="cb22-411"><a href="#cb22-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-412"><a href="#cb22-412" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-413"><a href="#cb22-413" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-414"><a href="#cb22-414" aria-hidden="true" tabindex="-1"></a><span class="fu">### Histograma: Transições entre Posturas</span></span>
+<span id="cb22-415"><a href="#cb22-415" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-416"><a href="#cb22-416" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-417"><a href="#cb22-417" aria-hidden="true" tabindex="-1"></a><span class="co"># Histograma de mudanças de postura</span></span>
+<span id="cb22-418"><a href="#cb22-418" aria-hidden="true" tabindex="-1"></a>transicoes_numericas <span class="op">=</span> [<span class="ss">f'</span><span class="sc">{</span>t[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">→</span><span class="sc">{</span>t[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">'</span> <span class="cf">for</span> t <span class="kw">in</span> transicoes]</span>
+<span id="cb22-419"><a href="#cb22-419" aria-hidden="true" tabindex="-1"></a>sns.histplot(transicoes_numericas, ax<span class="op">=</span>axes[<span class="dv">1</span>, <span class="dv">0</span>])</span>
+<span id="cb22-420"><a href="#cb22-420" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>, <span class="dv">0</span>].set_title(<span class="st">'Frequência das Mudanças Entre Posturas'</span>)</span>
+<span id="cb22-421"><a href="#cb22-421" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>, <span class="dv">0</span>].set_xlabel(<span class="st">'Transição'</span>)</span>
+<span id="cb22-422"><a href="#cb22-422" aria-hidden="true" tabindex="-1"></a>sns.despine(ax<span class="op">=</span>axes[<span class="dv">1</span>, <span class="dv">0</span>])</span>
+<span id="cb22-423"><a href="#cb22-423" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-424"><a href="#cb22-424" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-425"><a href="#cb22-425" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-426"><a href="#cb22-426" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**transicoes_numericas**: Transforma transições de posturas em strings formatadas.</span>
+<span id="cb22-427"><a href="#cb22-427" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**sns.histplot**: Plota um histograma da frequência das transições.</span>
+<span id="cb22-428"><a href="#cb22-428" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**set_title()**: Define o título do gráfico.</span>
+<span id="cb22-429"><a href="#cb22-429" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**set_xlabel()**: Adiciona rótulo ao eixo X.</span>
+<span id="cb22-430"><a href="#cb22-430" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-431"><a href="#cb22-431" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-432"><a href="#cb22-432" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-433"><a href="#cb22-433" aria-hidden="true" tabindex="-1"></a><span class="fu">## Exibição Final dos Gráficos</span></span>
+<span id="cb22-434"><a href="#cb22-434" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-435"><a href="#cb22-435" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-436"><a href="#cb22-436" aria-hidden="true" tabindex="-1"></a><span class="co"># Ajuste final da visualização</span></span>
+<span id="cb22-437"><a href="#cb22-437" aria-hidden="true" tabindex="-1"></a>tplt.delaxes(axes[<span class="dv">1</span>, <span class="dv">1</span>])  <span class="co"># Remove espaço vazio</span></span>
+<span id="cb22-438"><a href="#cb22-438" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb22-439"><a href="#cb22-439" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb22-440"><a href="#cb22-440" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-441"><a href="#cb22-441" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-442"><a href="#cb22-442" aria-hidden="true" tabindex="-1"></a><span class="fu">### Explicação</span></span>
+<span id="cb22-443"><a href="#cb22-443" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**plt.delaxes()**: Remove um gráfico vazio para manter o layout limpo.</span>
+<span id="cb22-444"><a href="#cb22-444" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**plt.tight_layout()**: Garante que os gráficos não fiquem sobrepostos.</span>
+<span id="cb22-445"><a href="#cb22-445" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**plt.show()**: Renderiza os gráficos.</span>
+<span id="cb22-446"><a href="#cb22-446" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-447"><a href="#cb22-447" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-448"><a href="#cb22-448" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-449"><a href="#cb22-449" aria-hidden="true" tabindex="-1"></a>Com isso, concluímos a análise visual e estatística das posturas detectadas. Podemos agora avançar para interpretar esses resultados e entender como eles podem informar decisões práticas! 🚀</span>
+<span id="cb22-450"><a href="#cb22-450" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-451"><a href="#cb22-451" aria-hidden="true" tabindex="-1"></a>--- </span>
+<span id="cb22-452"><a href="#cb22-452" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-453"><a href="#cb22-453" aria-hidden="true" tabindex="-1"></a><span class="fu"># Exemplo de Aplicação do Modelo</span></span>
+<span id="cb22-454"><a href="#cb22-454" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-455"><a href="#cb22-455" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb22-456"><a href="#cb22-456" aria-hidden="true" tabindex="-1"></a><span class="co"># Carrega o modelo YOLO previamente treinado usando o arquivo de pesos "best.pt"</span></span>
+<span id="cb22-457"><a href="#cb22-457" aria-hidden="true" tabindex="-1"></a>modelo <span class="op">=</span> YOLO(<span class="st">'/content/best.pt'</span>)</span>
+<span id="cb22-458"><a href="#cb22-458" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-459"><a href="#cb22-459" aria-hidden="true" tabindex="-1"></a><span class="co"># Aplica o modelo ao vídeo "teste.mp4" para detectar posturas</span></span>
+<span id="cb22-460"><a href="#cb22-460" aria-hidden="true" tabindex="-1"></a><span class="co"># O resultado será salvo e processado automaticamente pela função "processar_midia"</span></span>
+<span id="cb22-461"><a href="#cb22-461" aria-hidden="true" tabindex="-1"></a>processar_midia(<span class="st">'/content/teste_2.mp4'</span>, modelo, tipo<span class="op">=</span><span class="st">'video'</span>)</span>
+<span id="cb22-462"><a href="#cb22-462" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-463"><a href="#cb22-463" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-464"><a href="#cb22-464" aria-hidden="true" tabindex="-1"></a>_Exemplo de output:_</span>
+<span id="cb22-465"><a href="#cb22-465" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-466"><a href="#cb22-466" aria-hidden="true" tabindex="-1"></a><span class="al">![Resultado da Detecção](git_visao.png)</span></span>
+<span id="cb22-467"><a href="#cb22-467" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-468"><a href="#cb22-468" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb22-469"><a href="#cb22-469" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-470"><a href="#cb22-470" aria-hidden="true" tabindex="-1"></a>Com isso, concluímos a análise visual e estatística das posturas detectadas. Essencialmente, a transição do modelo de classificação para a EDA transforma simples etiquetas ("Deitado", "Sentado") em uma narrativa estatística sobre o comportamento ao longo do tempo.</span></code><button title="Copiar para a área de transferência" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":true,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
+
+
+
+
+</body></html>
