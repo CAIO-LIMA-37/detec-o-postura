@@ -1,0 +1,28 @@
+name: Render QMD to HTML
+
+on:
+  push:
+    branches:
+      - main  # Ou o branch que você usa
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Quarto
+      uses: quarto-dev/quarto-actions/setup@v2
+      with:
+        version: latest
+
+    - name: Render QMD to HTML
+      run: quarto render seu-arquivo.qmd --to html
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./_site  # Ou o diretório onde o HTML é gerado
