@@ -61,9 +61,7 @@ processar_midia('exemplos/imagem.jpg', modelo, tipo='imagem')
 | **Total**   | 160.21   | 100% |
 
 ### 📊 Gráfico Gerado
-![Gráfico de Posturas](exemplos/grafico.png)
+![Gráfico de Posturas](git_visao.png)
 
 ---
-
-✉️ **Contato:** [Seu Email ou GitHub]
 
