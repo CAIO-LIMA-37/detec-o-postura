@@ -39,26 +39,7 @@ pip install ultralytics
 modelo = YOLO('/content/best.pt')
 ```
 
-### 🔹 Processar um vídeo:
-```python
-# Aplica o modelo ao vídeo "teste.mp4" para detectar posturas
-# O resultado será salvo e processado automaticamente pela função "processar_midia"
-processar_midia('/content/teste.mp4', modelo, tipo='video')
-```
-
-### 🔹 Processar uma imagem:
-```python
-processar_midia('exemplos/imagem.jpg', modelo, tipo='imagem')
-```
-
-## 📊 Exemplos de Saída
-### 📌 Relatório de Tempo
-| Categoria    | Tempo (s) | Porcentagem |
-|-------------|----------|------------|
-| **Deitado** | 44.93    | 28.05% |
-| **Sentado** | 46.31    | 28.91% |
-| **Em Pé**  | 66.97    | 41.80% |
-| **Total**   | 160.21   | 100% |
+## Acesse o HTML para aprender mais.
 
 ### 📊 Gráfico Gerado
 ![Gráfico de Posturas](git_visao.png)
