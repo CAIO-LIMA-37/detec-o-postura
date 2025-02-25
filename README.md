@@ -38,11 +38,12 @@ pip install ultralytics
 # Carrega o modelo YOLO previamente treinado usando o arquivo de pesos "best.pt"
 modelo = YOLO('/content/best.pt')
 ```
+### Aplicar a função
+
+```python
+# Aplica o modelo ao vídeo "teste.mp4" para detectar posturas
+# O resultado será salvo e processado automaticamente pela função "processar_midia"
+processar_midia('/content/teste_2.mp4', modelo, tipo='video')
+```
 
 ## Acesse o HTML para aprender mais.
-
-### 📊 Gráfico Gerado
-![Gráfico de Posturas](git_visao.png)
-
----
-
