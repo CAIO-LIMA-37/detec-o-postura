@@ -32,11 +32,15 @@ pip install ultralytics
 
 ## 🖥️ Como Usar
 
-### 🔹 Processar um vídeo:
+### Carregar os Pesos
+
 ```python
 # Carrega o modelo YOLO previamente treinado usando o arquivo de pesos "best.pt"
 modelo = YOLO('/content/best.pt')
+```
 
+### 🔹 Processar um vídeo:
+```python
 # Aplica o modelo ao vídeo "teste.mp4" para detectar posturas
 # O resultado será salvo e processado automaticamente pela função "processar_midia"
 processar_midia('/content/teste.mp4', modelo, tipo='video')
